@@ -1,0 +1,6 @@
+@dotnet_trace_container_HostAddress = http://localhost:5092
+
+GET {{dotnet_trace_container_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
