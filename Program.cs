@@ -36,7 +36,19 @@ app.MapGet("/ps", () =>
 // curl http://<host>:5000/ls
 app.MapGet("/ls", () =>
 {
-    return RunCommand("ls");
+    string? volumeMountPath = Environment.GetEnvironmentVariable("VOLUME_MOUNT_PATH");
+
+    if (volumeMountPath == null)
+    {
+        return "Volume mount path is not specified. Please specify VOLUME_MOUNT_PATH environment variable";
+    }
+
+    if (!Directory.Exists(volumeMountPath))
+    {
+        return "Invalid volume mount path. Directory doesn't exist at the specified path";
+    }
+
+    return RunCommand("ls -l " + volumeMountPath);
 });
 
 // curl -X POST -H "Content-Type: application/json" -d '{"Command": "dotnet-trace collect -p <pid> -o <path> --profile gc-collect --duration <in hh:mm:ss format>"}' http://<host>:5000/capture-trace
@@ -128,6 +140,23 @@ app.MapGet("/download/{file}", (HttpRequest request) =>
     string volumeMountPath = Environment.GetEnvironmentVariable("VOLUME_MOUNT_PATH");
     file = Path.Combine(volumeMountPath, file);
     return Results.File(file);
+});
+
+// curl -X DELETE http://<host>:5000/delete/<file>
+app.MapDelete("/delete/{file}", (HttpRequest request) =>
+{
+    string file = (string)request.RouteValues["file"];
+    string volumeMountPath = Environment.GetEnvironmentVariable("VOLUME_MOUNT_PATH");
+    file = Path.Combine(volumeMountPath, file);
+    try
+    {
+        File.Delete(file);
+        return "File deleted successfully";
+    }
+    catch (Exception e)
+    {
+        return $"Failed to delete file: {e.Message}";
+    }
 });
 
 app.Run();
