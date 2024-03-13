@@ -58,12 +58,25 @@ app.MapPost("/capture-trace", ([FromBody] RequestBody request) =>
         return "Process id is not specified. Please specify -p <pid> option";
     }
 
+    string? volumeMountPath = Environment.GetEnvironmentVariable("VOLUME_MOUNT_PATH");
+
+    if (volumeMountPath == null)
+    {
+        return "Volume mount path is not specified. Please specify VOLUME_MOUNT_PATH environment variable";
+    }
+
+    if (!Directory.Exists(volumeMountPath))
+    {
+        return "Invalid volume mount path. Directory doesn't exist at the specified path";
+    }
+
     string? output_path = null;
     string[] tokens = command.Split(" ");
     for (int i = 1; i < tokens.Length; ++i)
     {
         if (tokens[i - 1].Equals("--output") || tokens[i - 1].Equals("-o"))
         {
+            tokens[i] = Path.Combine(volumeMountPath, tokens[i]);
             output_path = tokens[i];
             if (!output_path.EndsWith(".nettrace"))
             {
@@ -77,6 +90,8 @@ app.MapPost("/capture-trace", ([FromBody] RequestBody request) =>
     {
         return "Output file is not specified. Please specify --output <output path with .nettrace extension> option";
     }
+
+    command = string.Join(" ", tokens);
 
     var process = new Process()
     {
@@ -110,7 +125,8 @@ app.MapPost("/capture-trace", ([FromBody] RequestBody request) =>
 app.MapGet("/download/{file}", (HttpRequest request) =>
 {
     string file = (string) request.RouteValues["file"];
-    file = "/" + file;
+    string volumeMountPath = Environment.GetEnvironmentVariable("VOLUME_MOUNT_PATH");
+    file = Path.Combine(volumeMountPath, file);
     return Results.File(file);
 });
 
